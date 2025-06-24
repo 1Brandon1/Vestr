@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import {
 	Home,
@@ -48,36 +48,65 @@ const navGroups: NavGroup[] = [
 	}
 ]
 
-const Sidebar: React.FC = () => {
-	const [isCollapsed, setIsCollapsed] = useState(true)
-	const [isDarkMode, setIsDarkMode] = useState(false)
-	const navigate = useNavigate()
+// Custom hook for dark mode
+function useDarkMode(): [boolean, () => void] {
+	const [isDark, setIsDark] = useState<boolean>(() => document.documentElement.classList.contains('dark'))
 
-	// On mount, read stored theme and apply class
+	const toggle = useCallback(() => {
+		const html = document.documentElement
+		const next = !isDark
+		html.classList.toggle('dark', next)
+		localStorage.setItem('theme', next ? 'dark' : 'light')
+		setIsDark(next)
+	}, [isDark])
+
+	// Sync on mount (e.g., from preflight script)
 	useEffect(() => {
 		const stored = localStorage.getItem('theme')
-		if (stored === 'dark') {
-			document.documentElement.classList.add('dark')
-			setIsDarkMode(true)
+		if (stored) {
+			const next = stored === 'dark'
+			document.documentElement.classList.toggle('dark', next)
+			setIsDark(next)
 		}
 	}, [])
 
-	// Toggle theme: update html class + storage + local state
-	const toggleTheme = () => {
-		const html = document.documentElement
-		if (html.classList.contains('dark')) {
-			html.classList.remove('dark')
-			localStorage.setItem('theme', 'light')
-			setIsDarkMode(false)
-		} else {
-			html.classList.add('dark')
-			localStorage.setItem('theme', 'dark')
-			setIsDarkMode(true)
-		}
-	}
+	return [isDark, toggle]
+}
 
-	const toggleCollapse = () => setIsCollapsed((prev) => !prev)
-	const handleLogout = () => navigate('/login')
+const Sidebar: React.FC = () => {
+	const [isCollapsed, setIsCollapsed] = useState(true)
+	const [isDarkMode, toggleDarkMode] = useDarkMode()
+	const navigate = useNavigate()
+
+	const toggleCollapse = useCallback(() => setIsCollapsed((prev) => !prev), [])
+	const handleLogout = useCallback(() => navigate('/login'), [navigate])
+
+	// Renders navigation groups
+	const renderNav = useCallback(
+		(group: NavGroup) => (
+			<div key={group.title} className="mb-6">
+				<h2 className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">{group.title}</h2>
+				<ul className="space-y-1">
+					{group.items.map((item) => (
+						<li key={item.href}>
+							<NavLink
+								to={item.href}
+								className={({ isActive }) =>
+									`flex items-center p-2 rounded-lg transition-colors ${
+										isActive ? 'bg-gray-100 font-medium dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+									}`
+								}
+							>
+								<item.icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+								<span className="ml-3 text-gray-800 dark:text-gray-100">{item.label}</span>
+							</NavLink>
+						</li>
+					))}
+				</ul>
+			</div>
+		),
+		[]
+	)
 
 	return (
 		<>
@@ -112,30 +141,7 @@ const Sidebar: React.FC = () => {
 					<span className="ml-3 text-2xl font-extrabold text-gray-800 dark:text-gray-100">Vestr</span>
 				</div>
 
-				<nav className="flex-1 overflow-y-auto px-2 mt-2">
-					{navGroups.map((group) => (
-						<div key={group.title} className="mb-6">
-							<h2 className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">{group.title}</h2>
-							<ul className="space-y-1">
-								{group.items.map((item) => (
-									<li key={item.href}>
-										<NavLink
-											to={item.href}
-											className={({ isActive }) =>
-												`flex items-center p-2 rounded-lg transition-colors ${
-													isActive ? 'bg-gray-100 font-medium dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-												}`
-											}
-										>
-											<item.icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-											<span className="ml-3 text-gray-800 dark:text-gray-100">{item.label}</span>
-										</NavLink>
-									</li>
-								))}
-							</ul>
-						</div>
-					))}
-				</nav>
+				<nav className="flex-1 overflow-y-auto px-2 mt-2">{navGroups.map(renderNav)}</nav>
 
 				<div className="mb-6 px-2">
 					<h2 className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">PREFERENCES</h2>
@@ -155,7 +161,7 @@ const Sidebar: React.FC = () => {
 						</li>
 						<li>
 							<button
-								onClick={toggleTheme}
+								onClick={toggleDarkMode}
 								className="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-800"
 							>
 								{isDarkMode ? (
