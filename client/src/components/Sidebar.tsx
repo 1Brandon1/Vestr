@@ -9,9 +9,11 @@ import {
 	Book,
 	Newspaper,
 	Settings as SettingsIcon,
+	LogOut,
+	Menu,
+	X,
 	Sun,
-	Moon,
-	LogOut
+	Moon
 } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 
@@ -47,100 +49,138 @@ const navGroups: NavGroup[] = [
 ]
 
 const Sidebar: React.FC = () => {
-	const [isLightMode, setIsLightMode] = useState(() => {
-		return !document.documentElement.classList.contains('dark')
-	})
+	const [isCollapsed, setIsCollapsed] = useState(true)
+	const [isDarkMode, setIsDarkMode] = useState(false)
 	const navigate = useNavigate()
 
+	// On mount, read stored theme and apply class
 	useEffect(() => {
-		if (isLightMode) {
-			document.documentElement.classList.remove('dark')
-		} else {
+		const stored = localStorage.getItem('theme')
+		if (stored === 'dark') {
 			document.documentElement.classList.add('dark')
+			setIsDarkMode(true)
 		}
-	}, [isLightMode])
+	}, [])
 
-	const toggleLightMode = () => setIsLightMode((prev) => !prev)
-
-	const handleLogout = () => {
-		// TODO: implement logout logic (e.g., clear auth tokens)
-		navigate('/login')
+	// Toggle theme: update html class + storage + local state
+	const toggleTheme = () => {
+		const html = document.documentElement
+		if (html.classList.contains('dark')) {
+			html.classList.remove('dark')
+			localStorage.setItem('theme', 'light')
+			setIsDarkMode(false)
+		} else {
+			html.classList.add('dark')
+			localStorage.setItem('theme', 'dark')
+			setIsDarkMode(true)
+		}
 	}
 
+	const toggleCollapse = () => setIsCollapsed((prev) => !prev)
+	const handleLogout = () => navigate('/login')
+
 	return (
-		<motion.aside
-			initial={{ width: 0 }}
-			animate={{ width: 280 }}
-			transition={{ duration: 0.4 }}
-			className="flex flex-col h-screen bg-white shadow-xl p-6"
-		>
-			{/* Logo */}
-			<div className="flex items-center mb-8">
-				<div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
-					V
-				</div>
-				<span className="ml-3 text-2xl font-extrabold text-gray-800">Vestr</span>
-			</div>
-
-			{/* Main nav */}
-			<nav className="flex-1 overflow-y-auto">
-				{navGroups.map((group) => (
-					<div key={group.title} className="mb-6">
-						<h2 className="mb-2 px-2 text-xs font-semibold text-gray-500">{group.title}</h2>
-						<ul className="space-y-1">
-							{group.items.map((item) => (
-								<li key={item.href}>
-									<NavLink
-										to={item.href}
-										className={({ isActive }) =>
-											`flex items-center p-2 rounded-lg transition-colors ${
-												isActive ? 'bg-gray-100 font-medium' : 'hover:bg-gray-100'
-											}`
-										}
-									>
-										<item.icon className="h-5 w-5 mr-3 text-gray-600" />
-										<span className="text-gray-800">{item.label}</span>
-									</NavLink>
-								</li>
-							))}
-						</ul>
-					</div>
-				))}
-			</nav>
-
-			{/* Preferences */}
-			<div className="mb-6">
-				<div className="px-2 text-xs font-semibold text-gray-500">PREFERENCES</div>
-				<ul className="space-y-1 mt-2">
-					<li>
-						<NavLink
-							to="/settings"
-							className={({ isActive }) =>
-								`flex items-center p-2 rounded-lg transition-colors ${isActive ? 'bg-gray-100 font-medium' : 'hover:bg-gray-100'}`
-							}
-						>
-							<SettingsIcon className="h-5 w-5 mr-3 text-gray-600" />
-							<span className="text-gray-800">Settings</span>
-						</NavLink>
-					</li>
-					<li>
-						<button onClick={toggleLightMode} className="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 focus:outline-none">
-							{isLightMode ? <Sun className="h-5 w-5 mr-3 text-gray-600" /> : <Moon className="h-5 w-5 mr-3 text-gray-600" />}
-							<span className="text-gray-800">{isLightMode ? 'Dark Mode' : 'Light Mode'}</span>
-						</button>
-					</li>
-				</ul>
-			</div>
-
-			{/* Logout at bottom */}
-			<div className="mt-auto">
-				<button onClick={handleLogout} className="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 focus:outline-none">
-					<LogOut className="h-5 w-5 mr-3 text-gray-600" />
-					<span className="text-gray-800">Logout</span>
+		<>
+			{isCollapsed && (
+				<button
+					onClick={toggleCollapse}
+					className="fixed top-4 left-4 z-50 p-2 rounded-md bg-white shadow-lg focus:outline-none dark:bg-gray-800"
+				>
+					<Menu className="h-6 w-6 text-gray-800 dark:text-gray-200" />
 				</button>
-				<div className="mt-6 text-center text-xs text-gray-400">© {new Date().getFullYear()} Vestr</div>
-			</div>
-		</motion.aside>
+			)}
+
+			<motion.aside
+				initial={{ x: isCollapsed ? -300 : 0 }}
+				animate={{ x: isCollapsed ? -300 : 0 }}
+				transition={{ type: 'tween', duration: 0.3 }}
+				className="fixed top-0 left-0 z-40 flex flex-col h-screen bg-white shadow-xl w-64 rounded-tr-md rounded-br-md dark:bg-gray-900"
+			>
+				{!isCollapsed && (
+					<button
+						onClick={toggleCollapse}
+						className="absolute top-4 right-4 p-2 rounded-md bg-white shadow-lg focus:outline-none dark:bg-gray-800"
+					>
+						<X className="h-6 w-6 text-gray-800 dark:text-gray-200" />
+					</button>
+				)}
+
+				<div className="flex items-center p-4">
+					<div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold">
+						V
+					</div>
+					<span className="ml-3 text-2xl font-extrabold text-gray-800 dark:text-gray-100">Vestr</span>
+				</div>
+
+				<nav className="flex-1 overflow-y-auto px-2 mt-2">
+					{navGroups.map((group) => (
+						<div key={group.title} className="mb-6">
+							<h2 className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">{group.title}</h2>
+							<ul className="space-y-1">
+								{group.items.map((item) => (
+									<li key={item.href}>
+										<NavLink
+											to={item.href}
+											className={({ isActive }) =>
+												`flex items-center p-2 rounded-lg transition-colors ${
+													isActive ? 'bg-gray-100 font-medium dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+												}`
+											}
+										>
+											<item.icon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+											<span className="ml-3 text-gray-800 dark:text-gray-100">{item.label}</span>
+										</NavLink>
+									</li>
+								))}
+							</ul>
+						</div>
+					))}
+				</nav>
+
+				<div className="mb-6 px-2">
+					<h2 className="mb-2 text-xs font-semibold text-gray-500 dark:text-gray-400">PREFERENCES</h2>
+					<ul className="space-y-1">
+						<li>
+							<NavLink
+								to="/settings"
+								className={({ isActive }) =>
+									`flex items-center p-2 rounded-lg transition-colors ${
+										isActive ? 'bg-gray-100 font-medium dark:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+									}`
+								}
+							>
+								<SettingsIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+								<span className="ml-3 text-gray-800 dark:text-gray-100">Settings</span>
+							</NavLink>
+						</li>
+						<li>
+							<button
+								onClick={toggleTheme}
+								className="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-800"
+							>
+								{isDarkMode ? (
+									<Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+								) : (
+									<Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+								)}
+								<span className="ml-3 text-gray-800 dark:text-gray-100">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+							</button>
+						</li>
+					</ul>
+				</div>
+
+				<div className="mt-auto px-4 mb-4">
+					<button
+						onClick={handleLogout}
+						className="flex items-center w-full p-2 rounded-lg hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-800"
+					>
+						<LogOut className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+						<span className="ml-3 text-gray-800 dark:text-gray-100">Logout</span>
+					</button>
+					<div className="mt-6 text-center text-xs text-gray-400 dark:text-gray-600">© {new Date().getFullYear()} Vestr</div>
+				</div>
+			</motion.aside>
+		</>
 	)
 }
 
